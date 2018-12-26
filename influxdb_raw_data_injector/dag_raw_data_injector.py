@@ -8,8 +8,7 @@ from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from influxdb import InfluxDBClient
 from influxdb import DataFrameClient
-from influxdb_raw_data_injector import (execute_acm_gyro_files_write_pipeline,
-                                        execute_rri_files_write_pipeline)
+from influxdb_raw_data_injector import execute_write_pipeline
 
 config = configparser.ConfigParser()
 config.read('config.conf')
@@ -55,22 +54,18 @@ default_args = {
 
 dag = DAG('raw_data_injector', default_args=default_args, schedule_interval="@hourly")
 
-write_rri_data = PythonOperator(task_id='write_rri_data_into_influxDB',
-                                python_callable=execute_rri_files_write_pipeline,
-                                op_kwargs={"path_to_read_directory": PATH_TO_READ_DIRECTORY,
-                                           "path_for_written_files": PATH_FOR_WRITTEN_FILES,
-                                           "path_for_problems_files": PATH_FOR_PROBLEMS_FILES,
-                                           "df_client": DF_CLIENT,
-                                           "verbose": True},
+# -------- Write pipeline -------- #
+for measurement in ["RrInterval", "MotionAccelerometer", "MotionGyroscope"]:
+
+    write_data = PythonOperator(task_id='write_data_into_influxDB',
+                                python_callable=execute_write_pipeline,
+                                op_kwargs={
+                                    "measurement": measurement,
+                                    "path_to_read_directory": PATH_TO_READ_DIRECTORY,
+                                    "path_for_written_files": PATH_FOR_WRITTEN_FILES,
+                                    "path_for_problems_files": PATH_FOR_PROBLEMS_FILES,
+                                    "client": CLIENT,
+                                    "df_client": DF_CLIENT,
+                                    "verbose": True},
                                 dag=dag)
-
-write_acm_gyro_data = PythonOperator(task_id='write_acm_gyro_data_into_influxDB',
-                                     python_callable=execute_acm_gyro_files_write_pipeline,
-                                     op_kwargs={"path_to_read_directory": PATH_TO_READ_DIRECTORY,
-                                                "path_for_written_files": PATH_FOR_WRITTEN_FILES,
-                                                "path_for_problems_files": PATH_FOR_PROBLEMS_FILES,
-                                                "df_client": DF_CLIENT,
-                                                "verbose": True},
-                                     dag=dag)
-
-write_acm_gyro_data.set_upstream(write_rri_data)
+    write_data

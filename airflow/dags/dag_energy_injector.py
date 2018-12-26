@@ -66,7 +66,7 @@ for user in user_list:
                                                   "accelerometer_measurement_name": ACCELEROMETER_MEASUREMENT_NAME,
                                                   "five_sec_threshold": FIVE_SEC_THRESHOLD,
                                                   "one_min_threshold": ONE_MIN_THRESHOLD,
-                                                  "max_successive_time_diff": MAX_SUCCESSIVE_TIME_DIFF,
+                                                  "one_min_threshold": MAX_SUCCESSIVE_TIME_DIFF,
                                                   "batch_size": 5000
                                                   },
                                        dag=dag)

@@ -4,11 +4,17 @@
 import math
 import unittest
 import pandas as pd
-from features_creation.energy_feature_injector_methods import (create_energy_dataframe, get_user_list,
-                                                               transform_acm_result_set_into_dataframe)
+from features_creator.energy_feature_injector_methods import (create_energy_dataframe, get_user_list,
+                                                              transform_acm_result_set_into_dataframe,
+                                                              get_timestamps_for_query)
 
 
 class FeaturesCreationMethodsTestCase(unittest.TestCase):
+
+    def test_if_returned_timestamp_range_for_a_whole_day_from_midnight_to_midnight(self):
+        expected = []
+
+        pass
 
     def test_if_get_user_list_send_back_the_complete_list_of_user_in_the_database(self):
         # TODO ?

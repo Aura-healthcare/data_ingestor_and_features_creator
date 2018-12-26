@@ -2,6 +2,7 @@
 # coding: utf-8
 """This script defines Dags to inject data into influxDB via airflow."""
 
+import os
 from datetime import datetime, timedelta
 import configparser
 from airflow import DAG
@@ -10,8 +11,9 @@ from influxdb import InfluxDBClient
 from influxdb import DataFrameClient
 from energy_feature_injector_methods import (create_and_write_energy_for_user, get_user_list)
 
+run_path = os.path.dirname(os.path.abspath(__file__))
 config = configparser.ConfigParser()
-config.read('config.conf')
+config.read(run_path + 'config.conf')
 
 # InfluxDB useful configuration information
 influxdb_client_constants = config["Influxdb Client"]
@@ -66,7 +68,7 @@ for user in user_list:
                                                   "accelerometer_measurement_name": ACCELEROMETER_MEASUREMENT_NAME,
                                                   "five_sec_threshold": FIVE_SEC_THRESHOLD,
                                                   "one_min_threshold": ONE_MIN_THRESHOLD,
-                                                  "one_min_threshold": MAX_SUCCESSIVE_TIME_DIFF,
+                                                  "max_succesive_time_diff": MAX_SUCCESSIVE_TIME_DIFF,
                                                   "batch_size": 5000
                                                   },
                                        dag=dag)

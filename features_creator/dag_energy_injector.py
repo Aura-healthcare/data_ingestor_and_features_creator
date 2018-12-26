@@ -8,7 +8,7 @@ from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from influxdb import InfluxDBClient
 from influxdb import DataFrameClient
-from energy_feature_injector_methods import (create_and_write_energy_for_user, get_user_list)
+from energy_feature_injector_methods import (create_and_write_energy_for_users, get_user_list)
 
 config = configparser.ConfigParser()
 config.read('config.conf')
@@ -57,17 +57,17 @@ default_args = {
 
 dag = DAG('energy_data_injector', default_args=default_args, schedule_interval="@daily")
 
-for user in user_list:
-    write_energy_data = PythonOperator(task_id='create_and_write_energy_for_user',
-                                       python_callable=create_and_write_energy_for_user,
-                                       op_kwargs={"user_id": user,
-                                                  "client": CLIENT,
-                                                  "df_client": DF_CLIENT,
-                                                  "accelerometer_measurement_name": ACCELEROMETER_MEASUREMENT_NAME,
-                                                  "five_sec_threshold": FIVE_SEC_THRESHOLD,
-                                                  "one_min_threshold": ONE_MIN_THRESHOLD,
-                                                  "max_successive_time_diff": MAX_SUCCESSIVE_TIME_DIFF,
-                                                  "batch_size": 5000
-                                                  },
-                                       dag=dag)
-    write_energy_data
+write_energy_data = PythonOperator(task_id='create_and_write_energy_for_users',
+                                   python_callable=create_and_write_energy_for_users,
+                                   op_kwargs={"user_list": user_list,
+                                              "client": CLIENT,
+                                              "df_client": DF_CLIENT,
+                                              "accelerometer_measurement_name": ACCELEROMETER_MEASUREMENT_NAME,
+                                              "five_sec_threshold": FIVE_SEC_THRESHOLD,
+                                              "one_min_threshold": ONE_MIN_THRESHOLD,
+                                              "max_successive_time_diff": MAX_SUCCESSIVE_TIME_DIFF,
+                                              "batch_size": 5000
+                                              },
+                                   dag=dag)
+
+write_energy_data

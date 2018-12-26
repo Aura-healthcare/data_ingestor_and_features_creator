@@ -214,14 +214,14 @@ def get_timestamps_for_query(day):
     return start, end
 
 
-def create_and_write_energy_for_user(user_id: str, client, df_client, accelerometer_measurement_name: str,
-                                     five_sec_threshold: int, one_min_threshold: int, max_successive_time_diff: str,
-                                     batch_size=5000):
+def create_and_write_energy_for_users(user_list: str, client, df_client, accelerometer_measurement_name: str,
+                                      five_sec_threshold: int, one_min_threshold: int, max_successive_time_diff: str,
+                                      batch_size=5000):
     """
     Creates energy for user and write it in influxDB. It begins by extracting raw data from influxDB, process it
     to create the energy feature and then write batch of resulting feature data in influxDB.
 
-    :param user_id: id of user
+    :param user_list list of user
     :param client: influxdb client
     :param df_client: influxdb dataframe client
     :param accelerometer_measurement_name: measurement name of dataframe to write
@@ -234,50 +234,22 @@ def create_and_write_energy_for_user(user_id: str, client, df_client, accelerome
     in multiple dataframe of "batch_size" size, and write them sequentially for performance issues.
     :return:
     """
-    print("-----------------------")
-    print("[Creation of features] user {}".format(user_id))
 
-    # # 1. Compute global time interval
-    first_timestamp_to_compute_energy = get_first_timestamp_to_compute_energy(user_id, client=client)
-    print("FIRST : {}".format(first_timestamp_to_compute_energy))
-    day_range_to_query = get_time_difference_between_now_and_timestamp(first_timestamp_to_compute_energy)
+    print("There are {} users with acm data.".format(len(user_list)))
 
-    # # 3. Query raw Accelerometer data from time series db
-    # Extract raw data from InfluxDB for D-day
-    start = first_timestamp_to_compute_energy.strftime("%s") + "000ms"
-    _, end = get_timestamps_for_query(day_range_to_query)
-    extracted_result_set = extract_raw_data_from_influxdb(client, accelerometer_measurement_name,
-                                                          user_id, start, end)
+    for user_id in user_list:
+        print("-----------------------")
+        print("[Creation of features] user {}".format(user_id))
 
-    # Transform InfluxDB ResultSet in pandas Dataframe if resultset is not empty
-    if extracted_result_set:
-        tags = {"user": user_id}
-        raw_acm_dataframe = transform_acm_result_set_into_dataframe(extracted_result_set, tags)
-        print("Raw dataframe shape: {}".format(raw_acm_dataframe.shape))
+        # # 1. Compute global time interval
+        first_timestamp_to_compute_energy = get_first_timestamp_to_compute_energy(user_id, client=client)
+        print("FIRST : {}".format(first_timestamp_to_compute_energy))
+        day_range_to_query = get_time_difference_between_now_and_timestamp(first_timestamp_to_compute_energy)
 
-        # 4. Compute the energy feature
-        five_sec_energy_dataframe = create_energy_dataframe(raw_acm_dataframe,
-                                                            aggregation_count_threshold=five_sec_threshold,
-                                                            max_successive_time_diff=max_successive_time_diff,
-                                                            aggregation_time="5s")
-        if not five_sec_energy_dataframe.empty:
-            # 5. Chunk resulting energy dataframe (if necessary) and write in influxdb
-            chunk_and_write_dataframe(five_sec_energy_dataframe, accelerometer_measurement_name, user_id,
-                                      df_client, batch_size=batch_size)
-
-        # 4-bis. Compute the energy feature
-        one_minute_energy_dataframe = create_energy_dataframe(raw_acm_dataframe,
-                                                              aggregation_count_threshold=one_min_threshold,
-                                                              max_successive_time_diff=max_successive_time_diff,
-                                                              aggregation_time="1min")
-        if not one_minute_energy_dataframe.empty:
-            # 5-bis. Chunk resulting energy dataframe (if necessary) and write in influxdb
-            chunk_and_write_dataframe(one_minute_energy_dataframe, accelerometer_measurement_name, user_id,
-                                      df_client, batch_size=batch_size)
-
-    for day in reversed(range(day_range_to_query)):
+        # # 3. Query raw Accelerometer data from time series db
         # Extract raw data from InfluxDB for D-day
-        start, end = get_timestamps_for_query(day)
+        start = first_timestamp_to_compute_energy.strftime("%s") + "000ms"
+        _, end = get_timestamps_for_query(day_range_to_query)
         extracted_result_set = extract_raw_data_from_influxdb(client, accelerometer_measurement_name,
                                                               user_id, start, end)
 
@@ -286,30 +258,62 @@ def create_and_write_energy_for_user(user_id: str, client, df_client, accelerome
             tags = {"user": user_id}
             raw_acm_dataframe = transform_acm_result_set_into_dataframe(extracted_result_set, tags)
             print("Raw dataframe shape: {}".format(raw_acm_dataframe.shape))
-        else:
-            continue
 
-        # 4. Compute the energy feature
-        five_sec_energy_dataframe = create_energy_dataframe(raw_acm_dataframe,
-                                                            aggregation_count_threshold=five_sec_threshold,
-                                                            max_successive_time_diff=max_successive_time_diff,
-                                                            aggregation_time="5s")
-        if not five_sec_energy_dataframe.empty:
-            # 5. Chunk resulting energy dataframe (if necessary) and write in influxdb
-            chunk_and_write_dataframe(five_sec_energy_dataframe, accelerometer_measurement_name, user_id,
-                                      df_client, batch_size=batch_size)
+            # 4. Compute the energy feature
+            five_sec_energy_dataframe = create_energy_dataframe(raw_acm_dataframe,
+                                                                aggregation_count_threshold=five_sec_threshold,
+                                                                max_successive_time_diff=max_successive_time_diff,
+                                                                aggregation_time="5s")
+            if not five_sec_energy_dataframe.empty:
+                # 5. Chunk resulting energy dataframe (if necessary) and write in influxdb
+                chunk_and_write_dataframe(five_sec_energy_dataframe, accelerometer_measurement_name, user_id,
+                                          df_client, batch_size=batch_size)
 
-        # 4-bis. Compute the energy feature
-        one_minute_energy_dataframe = create_energy_dataframe(raw_acm_dataframe,
-                                                              aggregation_count_threshold=one_min_threshold,
-                                                              max_successive_time_diff=max_successive_time_diff,
-                                                              aggregation_time="1min")
-        if not one_minute_energy_dataframe.empty:
-            # 5-bis. Chunk resulting energy dataframe (if necessary) and write in influxdb
-            chunk_and_write_dataframe(one_minute_energy_dataframe, accelerometer_measurement_name, user_id,
-                                      df_client, batch_size=batch_size)
+            # 4-bis. Compute the energy feature
+            one_minute_energy_dataframe = create_energy_dataframe(raw_acm_dataframe,
+                                                                  aggregation_count_threshold=one_min_threshold,
+                                                                  max_successive_time_diff=max_successive_time_diff,
+                                                                  aggregation_time="1min")
+            if not one_minute_energy_dataframe.empty:
+                # 5-bis. Chunk resulting energy dataframe (if necessary) and write in influxdb
+                chunk_and_write_dataframe(one_minute_energy_dataframe, accelerometer_measurement_name, user_id,
+                                          df_client, batch_size=batch_size)
 
-        print("[Written process done]")
+        for day in reversed(range(day_range_to_query)):
+            # Extract raw data from InfluxDB for D-day
+            start, end = get_timestamps_for_query(day)
+            extracted_result_set = extract_raw_data_from_influxdb(client, accelerometer_measurement_name,
+                                                                  user_id, start, end)
+
+            # Transform InfluxDB ResultSet in pandas Dataframe if resultset is not empty
+            if extracted_result_set:
+                tags = {"user": user_id}
+                raw_acm_dataframe = transform_acm_result_set_into_dataframe(extracted_result_set, tags)
+                print("Raw dataframe shape: {}".format(raw_acm_dataframe.shape))
+            else:
+                continue
+
+            # 4. Compute the energy feature
+            five_sec_energy_dataframe = create_energy_dataframe(raw_acm_dataframe,
+                                                                aggregation_count_threshold=five_sec_threshold,
+                                                                max_successive_time_diff=max_successive_time_diff,
+                                                                aggregation_time="5s")
+            if not five_sec_energy_dataframe.empty:
+                # 5. Chunk resulting energy dataframe (if necessary) and write in influxdb
+                chunk_and_write_dataframe(five_sec_energy_dataframe, accelerometer_measurement_name, user_id,
+                                          df_client, batch_size=batch_size)
+
+            # 4-bis. Compute the energy feature
+            one_minute_energy_dataframe = create_energy_dataframe(raw_acm_dataframe,
+                                                                  aggregation_count_threshold=one_min_threshold,
+                                                                  max_successive_time_diff=max_successive_time_diff,
+                                                                  aggregation_time="1min")
+            if not one_minute_energy_dataframe.empty:
+                # 5-bis. Chunk resulting energy dataframe (if necessary) and write in influxdb
+                chunk_and_write_dataframe(one_minute_energy_dataframe, accelerometer_measurement_name, user_id,
+                                          df_client, batch_size=batch_size)
+
+            print("[Written process done for user : {}".format(user_id))
 
 
 if __name__ == "__main__":
@@ -339,7 +343,6 @@ if __name__ == "__main__":
 
     user_list = get_user_list(CLIENT, measurement=ACCELEROMETER_MEASUREMENT_NAME)
 
-    for user_id in user_list:
-        create_and_write_energy_for_user(user_id, CLIENT, DF_CLIENT, ACCELEROMETER_MEASUREMENT_NAME,
-                                         FIVE_SEC_THRESHOLD, ONE_MIN_THRESHOLD, MAX_SUCCESSIVE_TIME_DIFF,
-                                         batch_size=5000)
+    create_and_write_energy_for_users(user_list, CLIENT, DF_CLIENT, ACCELEROMETER_MEASUREMENT_NAME,
+                                      FIVE_SEC_THRESHOLD, ONE_MIN_THRESHOLD, MAX_SUCCESSIVE_TIME_DIFF,
+                                      batch_size=5000)

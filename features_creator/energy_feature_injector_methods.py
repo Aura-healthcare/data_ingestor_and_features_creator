@@ -13,11 +13,13 @@ This script defines methods to compute features from InfluxDB Data
 """
 
 from datetime import timedelta
-import pytz
 import math
 from typing import List
 import datetime
 import configparser
+import logging
+from logging.handlers import RotatingFileHandler
+import pytz
 import numpy as np
 import pandas as pd
 from influxdb import InfluxDBClient
@@ -29,6 +31,22 @@ USER_PARAM_NAME = "user"
 DEVICE_PARAM_NAME = "device_address"
 
 ACCELEROMETER_MEASUREMENT_NAME = "MotionAccelerometer"
+
+# Create logger with custom formatter
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# Handler file creation with 1 backup and max size of 1Mo
+file_handler = RotatingFileHandler('airflow_dags.log', 'a', 1000000, 1)
+file_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+# création d'un second handler qui va rediriger chaque écriture de log sur la console
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.DEBUG)
+logger.addHandler(stream_handler)
 
 
 # --------------------- FUNCTIONS TO QUERY INFLUXDB --------------------- #
@@ -74,7 +92,7 @@ def extract_raw_data_from_influxdb(client, measurement: str, user_id: str, start
                                                                                         user_id,
                                                                                         start_time,
                                                                                         end_time)
-    print(query)
+    logging.debug(query)
     extracted_result_set = client.query(query)
     return extracted_result_set
 
@@ -97,12 +115,12 @@ def get_first_timestamp_to_compute_energy(user_id: str, client):
     if last_energy_timestamp_for_user:
         # Get last timestamp of energy data for user
         first_timestamp_to_compute_energy = last_energy_timestamp_for_user[0]["time"]
-        print("####### {} #######".format(pd.to_datetime(first_timestamp_to_compute_energy).tz_localize('Europe/Paris')))
-        print("Last energy timestamp in time series db: {}".format(first_timestamp_to_compute_energy))
+        logging.debug("####### {} #######".format(pd.to_datetime(first_timestamp_to_compute_energy).tz_localize('Europe/Paris')))
+        logging.info("Last energy timestamp in time series db: {}".format(first_timestamp_to_compute_energy))
     else:
         # Get first timestamp of Accelerometer data for user
-        print("No energy data for user : {}".format(user_id))
-        print("[Calculating energy from all MotionAccelerometer data]")
+        logging.info("No energy data for user : {}".format(user_id))
+        logging.info("[Calculating energy from all MotionAccelerometer data]")
         query = "SELECT first(\"x_acm\") FROM MotionAccelerometer WHERE \"user\" = '{}'".format(user_id)
         extracted_data_result_set = client.query(query)
         if extracted_data_result_set:
@@ -235,15 +253,15 @@ def create_and_write_energy_for_users(user_list: str, client, df_client, acceler
     :return:
     """
 
-    print("There are {} users with acm data.".format(len(user_list)))
+    logging.info("There are {} users with acm data.".format(len(user_list)))
 
     for user_id in user_list:
-        print("-----------------------")
-        print("[Creation of features] user {}".format(user_id))
+        logging.debug("-----------------------")
+        logging.info("[Creation of features] user {}".format(user_id))
 
         # # 1. Compute global time interval
         first_timestamp_to_compute_energy = get_first_timestamp_to_compute_energy(user_id, client=client)
-        print("FIRST : {}".format(first_timestamp_to_compute_energy))
+        logging.debug("FIRST : {}".format(first_timestamp_to_compute_energy))
         day_range_to_query = get_time_difference_between_now_and_timestamp(first_timestamp_to_compute_energy)
 
         # # 3. Query raw Accelerometer data from time series db
@@ -257,7 +275,7 @@ def create_and_write_energy_for_users(user_list: str, client, df_client, acceler
         if extracted_result_set:
             tags = {"user": user_id}
             raw_acm_dataframe = transform_acm_result_set_into_dataframe(extracted_result_set, tags)
-            print("Raw dataframe shape: {}".format(raw_acm_dataframe.shape))
+            logging.info("Raw dataframe shape: {}".format(raw_acm_dataframe.shape))
 
             # 4. Compute the energy feature
             five_sec_energy_dataframe = create_energy_dataframe(raw_acm_dataframe,
@@ -289,7 +307,7 @@ def create_and_write_energy_for_users(user_list: str, client, df_client, acceler
             if extracted_result_set:
                 tags = {"user": user_id}
                 raw_acm_dataframe = transform_acm_result_set_into_dataframe(extracted_result_set, tags)
-                print("Raw dataframe shape: {}".format(raw_acm_dataframe.shape))
+                logging.info("Raw dataframe shape: {}".format(raw_acm_dataframe.shape))
             else:
                 continue
 
@@ -313,7 +331,7 @@ def create_and_write_energy_for_users(user_list: str, client, df_client, acceler
                 chunk_and_write_dataframe(one_minute_energy_dataframe, accelerometer_measurement_name, user_id,
                                           df_client, batch_size=batch_size)
 
-            print("[Written process done for user : {}".format(user_id))
+            logging.info("[Written process done for user : {}".format(user_id))
 
 
 if __name__ == "__main__":
@@ -339,7 +357,7 @@ if __name__ == "__main__":
     # https://influxdb-python.readthedocs.io/en/latest/api-documentation.html
     CLIENT = InfluxDBClient(host=HOST, port=PORT, username=USER, password=PASSWORD, database=DB_NAME)
     DF_CLIENT = DataFrameClient(host=HOST, port=PORT, username=USER, password=PASSWORD, database=DB_NAME)
-    print("[Client created]")
+    logging.info("[Client created]")
 
     user_list = get_user_list(CLIENT, measurement=ACCELEROMETER_MEASUREMENT_NAME)
 

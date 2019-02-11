@@ -5,6 +5,9 @@
 import datetime
 import pandas as pd
 
+ACM_MEASUREMENT_NAME = "MotionAccelerometer"
+GYRO_MEASUREMENT_NAME = "MotionGyroscope"
+
 # ---------------- OTHER METHODS ---------------- #
 
 def create_df_with_unique_index(data_to_write: pd.DataFrame,
@@ -78,6 +81,7 @@ def create_files_by_user_dict(files_list: list) -> dict:
 
 def launch_retroactive_influxdb_cq(client, user, measurement, first_timestamp):
     """
+    TODO
 
     :param client:
     :param user:
@@ -89,14 +93,14 @@ def launch_retroactive_influxdb_cq(client, user, measurement, first_timestamp):
     unix_timestamp_for_query = datetime.datetime(*first_timestamp.timetuple()[:3]).strftime("%s") + "000ms"
 
     # Create retroactive continuous queries if data has been ingested for more than 1d
-    if measurement == "MotionAccelerometer":
+    if measurement == ACM_MEASUREMENT_NAME:
         retroactive_continuous_query = "SELECT count(\"x_acm\") INTO \"x_acm_count_by_day\" FROM {} WHERE \"user\" = '{}' and time >= {} GROUP BY time(1d), \"user\"".format(measurement, user, unix_timestamp_for_query)
         client.query(retroactive_continuous_query)
         retroactive_continuous_query = "SELECT count(\"y_acm\") INTO \"y_acm_count_by_day\" FROM {} WHERE \"user\" = '{}' and time >= {} GROUP BY time(1d), \"user\"".format(measurement, user, unix_timestamp_for_query)
         client.query(retroactive_continuous_query)
         retroactive_continuous_query = "SELECT count(\"z_acm\") INTO \"z_acm_count_by_day\" FROM {} WHERE \"user\" = '{}' and time >= {} GROUP BY time(1d), \"user\"".format(measurement, user, unix_timestamp_for_query)
         client.query(retroactive_continuous_query)
-    elif measurement == "MotionGyroscope":
+    elif measurement == GYRO_MEASUREMENT_NAME:
         retroactive_continuous_query = "SELECT count(\"x_gyro\") INTO \"x_gyro_count_by_day\" FROM {} WHERE \"user\" = '{}' and time >= {} GROUP BY time(1d), \"user\"".format(measurement, user, unix_timestamp_for_query)
         client.query(retroactive_continuous_query)
         retroactive_continuous_query = "SELECT count(\"y_gyro\") INTO \"y_gyro_count_by_day\" FROM {} WHERE \"user\" = '{}' and time >= {} GROUP BY time(1d), \"user\"".format(measurement, user, unix_timestamp_for_query)

@@ -5,13 +5,13 @@
 import unittest
 import pandas as pd
 import numpy as np
-from influxdb_raw_data_injector.influxdb_raw_data_injector import create_df_with_unique_index
-from influxdb_raw_data_injector.influxdb_raw_data_injector import convert_acm_json_to_df
-from influxdb_raw_data_injector.influxdb_raw_data_injector import convert_rri_json_to_df
-from influxdb_raw_data_injector.influxdb_raw_data_injector import convert_gyro_json_to_df
-from influxdb_raw_data_injector.influxdb_raw_data_injector import create_files_by_user_dict
-from influxdb_raw_data_injector.influxdb_raw_data_injector import create_corrected_timestamp_list
-from influxdb_raw_data_injector.influxdb_raw_data_injector import concat_rrinterval_files_into_single_dataframe
+from influxdb_raw_data_injector.dataframe_converter import (convert_acm_json_to_df,
+                                                            convert_rri_json_to_df,
+                                                            convert_gyro_json_to_df)
+from influxdb_raw_data_injector.other_methods import (create_files_by_user_dict,
+                                                      create_df_with_unique_index)
+from influxdb_raw_data_injector.rri_processing import (create_corrected_timestamp_list,
+                                                       concat_rrinterval_files_into_single_dataframe)
 
 
 class InfluxdbInjectorMethodsTestCase(unittest.TestCase):

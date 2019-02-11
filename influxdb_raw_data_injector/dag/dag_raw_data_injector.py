@@ -8,7 +8,7 @@ from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from influxdb import InfluxDBClient
 from influxdb import DataFrameClient
-from main_raw_data_injector import execute_write_pipeline
+from influxdb_raw_data_injector.main_raw_data_injector import execute_write_pipeline
 
 config = configparser.ConfigParser()
 config.read('config.conf')

@@ -9,6 +9,7 @@ import pandas as pd
 from dataframe_converter import convert_rri_json_to_df
 
 TYPE_PARAM_NAME = "type"
+RRI_MEASUREMENT_NAME = "RrInterval"
 
 def concat_rrinterval_files_into_single_dataframe(files_list: list) -> pd.DataFrame:
     """
@@ -32,7 +33,7 @@ def concat_rrinterval_files_into_single_dataframe(files_list: list) -> pd.DataFr
         measurement = json_data[TYPE_PARAM_NAME]
 
         # Extract data and create dataframe from JSON file
-        if measurement == "RrInterval":
+        if measurement == RRI_MEASUREMENT_NAME:
             rr_interval_dataframe = convert_rri_json_to_df(json_data)
             dataframe_list.append(rr_interval_dataframe)
 
@@ -53,7 +54,7 @@ def create_corrected_timestamp_list(concatenated_rr_interval_dataframe: pd.DataF
     ---------
     corrected_timestamp_list - Corrected timestamp generated
     """
-    rri_list = concatenated_rr_interval_dataframe["RrInterval"].values
+    rri_list = concatenated_rr_interval_dataframe[RRI_MEASUREMENT_NAME].values
     polar_index = concatenated_rr_interval_dataframe.index
 
     current_timestamp = polar_index[0]
@@ -82,6 +83,7 @@ def create_corrected_timestamp_list(concatenated_rr_interval_dataframe: pd.DataF
 def get_next_timestamp(next_timestamp, current_timestamp, last_corrected_timestamp,
                        next_rr_interval: float):
     """
+    todo
 
     :param next_timestamp:
     :param current_timestamp:

@@ -36,7 +36,7 @@ formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
-# création d'un second handler qui va rediriger chaque écriture de log sur la console
+# Second handler which will write logs in the console
 stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.DEBUG)
 logger.addHandler(stream_handler)
@@ -102,6 +102,7 @@ def write_file_to_influxdb(file: str, path_to_files: str, df_client) -> bool:
 def chunk_and_write_dataframe(dataframe_to_write: pd.DataFrame, measurement: str,
                               tags: dict, df_client, batch_size: int = 5000) -> bool:
     """
+    TODO
 
     :param dataframe_to_write:
     :param measurement:
@@ -148,6 +149,7 @@ def rri_files_write_pipeline(user_rri_files: list, df_client, path_to_read_direc
                              path_for_written_files: str, path_for_problems_files: str,
                              verbose: bool = True):
     """
+    TODO
 
     :param user:
     :param user_rri_files:
@@ -210,6 +212,7 @@ def acm_gyro_write_pipeline(user_acm_files: list, df_client, path_to_read_direct
                             path_for_written_files: str, path_for_problems_files: str,
                             verbose: bool = True):
     """
+    TODO
 
     :param user_acm_files:
     :param df_client:

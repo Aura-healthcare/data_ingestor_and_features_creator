@@ -25,7 +25,7 @@ if __name__ == "__main__":
     USER = influxdb_client_constants["user"]
     PASSWORD = influxdb_client_constants["password"]
 
-    # Create influxDB clients - see InfluxDB Python API for more informations
+    # Create influxDB clients - see InfluxDB Python API for more information
     # https://influxdb-python.readthedocs.io/en/latest/api-documentation.html
     CLIENT = InfluxDBClient(host=HOST, port=PORT, username=USER, password=PASSWORD,
                             database=DB_NAME)
